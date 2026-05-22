@@ -18,10 +18,41 @@
 
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
+const http   = require('http');
 const {
     buildRoundResult, buildMatchOver,
     CHOICES, EMOJI,
 } = require('./game');
+
+// ── QR web server (for Railway / remote deployments) ────────────────────────
+// Opens a tiny HTTP server so you can visit the Railway public URL and see
+// the QR code as a scannable image instead of hunting through logs.
+let latestQR = null;
+
+const PORT = process.env.PORT || 3000;
+http.createServer((req, res) => {
+    if (latestQR) {
+        const imgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(latestQR)}`;
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(`<!DOCTYPE html>
+<html>
+  <head><title>WhatsApp RPS – Scan QR</title>
+  <meta http-equiv="refresh" content="20">
+  <style>body{font-family:sans-serif;text-align:center;padding:40px}</style></head>
+  <body>
+    <h2>Scan with WhatsApp → Linked Devices → Link a Device</h2>
+    <img src="${imgUrl}" width="300" height="300" />
+    <p style="color:grey">Page refreshes every 20 s — QR codes expire quickly, refresh if it doesn't work.</p>
+  </body>
+</html>`);
+    } else {
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(`<!DOCTYPE html><html><body style="font-family:sans-serif;text-align:center;padding:40px">
+          <h2>✅ Already authenticated — no QR needed!</h2>
+          <p>The bot is running and connected to WhatsApp.</p>
+        </body></html>`);
+    }
+}).listen(PORT, () => console.log(`QR server listening on port ${PORT}`));
 
 // ── Constants ────────────────────────────────────────────────────────────────
 const CHALLENGE_TIMEOUT_MS  = 60_000;   // 60 s to accept a challenge
@@ -66,16 +97,13 @@ const client = new Client({
 });
 
 client.on('qr', (qr) => {
-    console.log('\nScan this QR code with your WhatsApp to log in:\n');
+    latestQR = qr;
     qrcode.generate(qr, { small: true });
-
-    // In remote/cloud deployments the ASCII art is hard to scan.
-    // Open this URL in any browser to get a scannable QR image:
-    const imageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qr)}`;
-    console.log('\n📱 Can\'t scan the ASCII code? Open this URL in your browser:\n' + imageUrl + '\n');
+    console.log('\n📱 Open your Railway public URL in a browser to scan the QR code.\n');
 });
 
 client.on('ready', () => {
+    latestQR = null;   // clear QR — no longer needed
     console.log('✅  WhatsApp RPS Bot is ready!');
 });
 
