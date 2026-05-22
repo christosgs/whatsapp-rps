@@ -68,6 +68,11 @@ const client = new Client({
 client.on('qr', (qr) => {
     console.log('\nScan this QR code with your WhatsApp to log in:\n');
     qrcode.generate(qr, { small: true });
+
+    // In remote/cloud deployments the ASCII art is hard to scan.
+    // Open this URL in any browser to get a scannable QR image:
+    const imageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qr)}`;
+    console.log('\n📱 Can\'t scan the ASCII code? Open this URL in your browser:\n' + imageUrl + '\n');
 });
 
 client.on('ready', () => {
