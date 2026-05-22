@@ -1,10 +1,22 @@
 FROM node:20-slim
 
-# Install Chromium and required fonts (whatsapp-web.js needs a real browser)
+# Install Chromium + all shared libs it needs in a headless/sandbox environment
 RUN apt-get update && apt-get install -y \
     chromium \
     fonts-freefont-ttf \
     ca-certificates \
+    libnss3 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libdrm2 \
+    libxkbcommon0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxrandr2 \
+    libgbm1 \
+    libasound2 \
     --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
